@@ -20,7 +20,7 @@ class StatsClient(object):
             hostport = StatsClient.HOSTPORT
         self._hostport = hostport
         self._sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        
+
     def timer(self, key, timestamp, sample_rate=1):
         self._send('%s:%d|ms' % (key, round(timestamp)), sample_rate)
 
@@ -35,6 +35,12 @@ class StatsClient(object):
             keys = [keys]
         for key in keys:
             self._send('%s:%d|c' % (key, round(magnitude)), sample_rate)
+
+    def gauge(self, key, value):
+        self._send('%s:%s|g' % (key, value))
+
+    def set(self, key, value):
+        self._send('%s:%s|s' % (key, value))
 
     def _send(self, data, sample_rate=1):
         packet = None

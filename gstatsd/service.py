@@ -48,6 +48,8 @@ class Stats(object):
     def __init__(self):
         self.timers = defaultdict(list)
         self.counts = defaultdict(float)
+        self.gauges = defaultdict(float)
+        self.sets = defaultdict(set)
         self.percent = PERCENT
         self.interval = INTERVAL
 
@@ -124,12 +126,20 @@ class StatsDaemon(object):
         self._sock = None
         self._flush_task = None
 
+        self._stats = None
         self._reset_stats()
 
     def _reset_stats(self):
+        stats = self._stats
         self._stats = Stats()
         self._stats.percent = self._percent
         self._stats.interval = self._interval
+
+        if stats:
+            # preserve sets/gauges
+            for v in stats.sets.itervalues():
+                v.clear()
+            self._stats.gauges = stats.gauges
 
     def exit(self, msg, code=1):
         self.error(msg)
@@ -163,7 +173,7 @@ class StatsDaemon(object):
         self._flush_task = gevent.spawn(_flush_impl)
 
         # start accepting connections
-        self._sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 
+        self._sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM,
             socket.IPPROTO_UDP)
         self._sock.bind(self._bindaddr)
         while 1:
@@ -207,11 +217,21 @@ class StatsDaemon(object):
                 value = float(value if value else 1) * (1 / srate)
                 stats.counts[key] += value
 
+            # guages
+            elif stype == 'g':
+                if value[0] in '+-':
+                    stats.gauges[key] += float(value)
+                else:
+                    stats.gauges[key] = float(value)
+
+            # sets
+            elif stype == 's':
+                stats.sets[key].add(value)
 
 def main():
     opts = optparse.OptionParser(description=DESCRIPTION, version=__version__,
         add_help_option=False)
-    opts.add_option('-b', '--bind', dest='bind_addr', default=':8125', 
+    opts.add_option('-b', '--bind', dest='bind_addr', default=':8125',
         help="bind [host]:port (host defaults to '')")
     opts.add_option('-s', '--sink', dest='sink', action='append', default=[],
         help="a graphite service to which stats are sent ([host]:port).")
@@ -239,7 +259,7 @@ def main():
     sd = StatsDaemon(options.bind_addr, options.sink, options.interval,
         options.percent, options.verbose)
     sd.start()
- 
+
 
 if __name__ == '__main__':
     main()
