@@ -53,6 +53,17 @@ class StatsClientTest(unittest.TestCase):
         self._cli.counter('foo', 1, 0.2)
         self.assertEquals(self._cli.packets[-1], ('foo:1|c', 0.2))
 
+    def test_gauge(self):
+        self._cli.gauge('foo', 5)
+        self.assertEquals(self._cli.packets[-1], ('foo:5|g', 1))
+        self._cli.gauge('foo', 6)
+        self.assertEquals(self._cli.packets[-1], ('foo:6|g', 1))
+
+    def test_set(self):
+        self._cli.set('foo', 'abc123')
+        self.assertEquals(self._cli.packets[-1], ('foo:abc123|s', 1))
+        self._cli.set('foo', 'abc124')
+        self.assertEquals(self._cli.packets[-1], ('foo:abc124|s', 1))
 
 class StatsTest(unittest.TestCase):
 

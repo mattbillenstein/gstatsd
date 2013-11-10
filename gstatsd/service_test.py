@@ -42,6 +42,31 @@ class StatsServiceTest(unittest.TestCase):
         self.svc._process(pkt, None)
         self.assertEquals(self.stats.counts, {'foo': 1})
 
+    def test_gauges(self):
+        pkt = 'foo:10|g'
+        self.svc._process(pkt, None)
+        self.assertEquals(self.stats.gauges, {'foo': 10})
+        pkt = 'foo:20|g'
+        self.svc._process(pkt, None)
+        self.assertEquals(self.stats.gauges, {'foo': 20})
+        pkt = 'foo:+10|g'
+        self.svc._process(pkt, None)
+        self.assertEquals(self.stats.gauges, {'foo': 30})
+        pkt = 'foo:-10|g'
+        self.svc._process(pkt, None)
+        self.assertEquals(self.stats.gauges, {'foo': 20})
+
+    def test_sets(self):
+        pkt = 'foo:abc123|s'
+        self.svc._process(pkt, None)
+        self.assertEquals(self.stats.sets, {'foo': set(['abc123'])})
+        pkt = 'foo:abc123|s'
+        self.svc._process(pkt, None)
+        self.assertEquals(self.stats.sets, {'foo': set(['abc123'])})
+        pkt = 'foo:abc124|s'
+        self.svc._process(pkt, None)
+        self.assertEquals(self.stats.sets, {'foo': set(['abc123', 'abc124'])})
+
     def test_counters_sampled(self):
         pkt = 'foo:1|c|@.5'
         self.svc._process(pkt, None)
